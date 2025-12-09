@@ -1,0 +1,11 @@
+# Git
+.git
+.gitignore
+
+# Go
+bin/
+*.exe
+*.test
+*.out
+main
+mesas.db

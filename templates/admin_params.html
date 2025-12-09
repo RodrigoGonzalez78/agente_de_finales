@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración | Panel Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #09090b;
+            --surface: #18181b;
+            --border: #27272a;
+            --primary: #fafafa;
+            --primary-fg: #18181b;
+            --text-main: #e4e4e7;
+            --text-muted: #a1a1aa;
+            --input-bg: #09090b;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --radius: 0.5rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            padding: 30px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5 {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: var(--radius);
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-main);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--primary-fg);
+            border: none;
+        }
+
+        .btn-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            margin-bottom: 16px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.5rem;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-main);
+            font-family: inherit;
+        }
+
+        .list-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        input[type="checkbox"] {
+            accent-color: var(--primary);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div>
+            <h1>Configuración del Sistema</h1>
+            <p style="color: var(--text-muted); margin-top: 4px;">Gestiona los parámetros globales y fechas de mesas.
+            </p>
+        </div>
+        <a href="/admin" class="btn">← Volver al Panel</a>
+    </div>
+
+    <!-- Turnos Config -->
+    <div class="card" style="margin-bottom: 30px;">
+        <h3 class="card-title">📅 Configuración de Turnos</h3>
+        <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">Gestiona los turnos de examen. Se
+            cargan 10 por defecto, pero puedes agregar más.</p>
+
+        <!-- Add New Turno Form -->
+        <form action="/admin/turnos" method="POST"
+            style="display: flex; gap: 12px; align-items: flex-end; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border);">
+            <div style="flex: 1;">
+                <label
+                    style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Nombre</label>
+                <input type="text" name="nombre" class="input" placeholder="Ej: Mesa Especial" required
+                    style="margin-top:0;">
+            </div>
+            <div style="flex: 1;">
+                <label
+                    style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Inicio</label>
+                <input type="date" name="fecha_inicio" class="input" required style="margin-top:0;">
+            </div>
+            <div style="flex: 1;">
+                <label
+                    style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Fin</label>
+                <input type="date" name="fecha_fin" class="input" required style="margin-top:0;">
+            </div>
+            <div style="text-align: center;">
+                <label
+                    style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Receso</label>
+                <input type="checkbox" name="receso" style="margin-top: 10px;">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Agregar Turno</button>
+            </div>
+        </form>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">ID</th>
+                        <th>Nombre / Turno</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                        <th style="text-align: center;">Receso</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .turnos }}
+                    <tr>
+                        <form action="/admin/turnos/update/{{ .ID }}" method="POST">
+                            <td style="color: var(--text-muted);">{{ .ID }}</td>
+                            <td>
+                                <input type="text" name="nombre" value="{{ .Nombre }}" class="input"
+                                    style="width: 100%;">
+                            </td>
+                            <td>
+                                <input type="date" name="fecha_inicio" value="{{ .FechaInicio }}" class="input">
+                            </td>
+                            <td>
+                                <input type="date" name="fecha_fin" value="{{ .FechaFin }}" class="input">
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" name="receso" {{ if .Receso }}checked{{ end }}>
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <button type="submit" class="btn btn-primary"
+                                    style="padding: 6px 12px; font-size: 0.8rem; margin-right: 4px;">💾</button>
+                                <a href="/admin/turnos/delete/{{ .ID }}" class="btn btn-danger"
+                                    style="padding: 6px 12px; font-size: 0.8rem;"
+                                    onclick="return confirm('¿Eliminar este turno?')">🗑️</a>
+                            </td>
+                        </form>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Other Params Grid -->
+    <div class="grid-container">
+
+        <!-- Materias -->
+        <div class="card">
+            <h3 class="card-title">📚 Materias</h3>
+            <form action="/admin/materias" method="POST" style="display: flex; gap: 8px;">
+                <input type="text" name="nombre" class="input" placeholder="Nueva Materia" required>
+                <button class="btn btn-primary" type="submit">+</button>
+            </form>
+            <div class="list-group">
+                {{ range .materias }}
+                <div class="list-item">
+                    <span>{{ .Nombre }}</span>
+                    <a href="/admin/config/delete/materia/{{ .ID }}" class="btn btn-danger"
+                        style="font-size:12px; padding: 4px 8px;" onclick="return confirm('¿Borrar?')">✕</a>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+
+        <!-- Aulas -->
+        <div class="card">
+            <h3 class="card-title">🏫 Aulas</h3>
+            <form action="/admin/aulas" method="POST" style="display: flex; gap: 8px;">
+                <input type="text" name="nombre" class="input" placeholder="Nombre (Ej: Aula 5)" required
+                    style="flex:1;">
+                <select name="sede_id" class="input" style="width: 100px;" required>
+                    <option value="" disabled selected>Sede</option>
+                    {{ range .sedes }}
+                    <option value="{{ .ID }}">{{ .Nombre }}</option>
+                    {{ end }}
+                </select>
+                <button class="btn btn-primary" type="submit">+</button>
+            </form>
+            <div class="list-group">
+                {{ range .aulas }}
+                <div class="list-item">
+                    <span>{{ .Nombre }}</span>
+                    <a href="/admin/config/delete/aula/{{ .ID }}" class="btn btn-danger"
+                        style="font-size:12px; padding: 4px 8px;" onclick="return confirm('¿Borrar?')">✕</a>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+
+        <!-- Sedes -->
+        <div class="card">
+            <h3 class="card-title">📍 Sedes</h3>
+            <form action="/admin/sedes" method="POST" style="display: flex; gap: 8px;">
+                <input type="text" name="nombre" class="input" placeholder="Nueva Sede" required>
+                <button class="btn btn-primary" type="submit">+</button>
+            </form>
+            <div class="list-group">
+                {{ range .sedes }}
+                <div class="list-item">
+                    <span>{{ .Nombre }}</span>
+                    <a href="/admin/config/delete/sede/{{ .ID }}" class="btn btn-danger"
+                        style="font-size:12px; padding: 4px 8px;" onclick="return confirm('¿Borrar?')">✕</a>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+
+        <!-- Carreras -->
+        <div class="card">
+            <h3 class="card-title">🎓 Carreras</h3>
+            <form action="/admin/carreras" method="POST" style="display: flex; gap: 8px;">
+                <input type="text" name="nombre" class="input" placeholder="Nueva Carrera" required>
+                <button class="btn btn-primary" type="submit">+</button>
+            </form>
+            <div class="list-group">
+                {{ range .carreras }}
+                <div class="list-item">
+                    <span>{{ .Nombre }}</span>
+                    <a href="/admin/config/delete/carrera/{{ .ID }}" class="btn btn-danger"
+                        style="font-size:12px; padding: 4px 8px;" onclick="return confirm('¿Borrar?')">✕</a>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

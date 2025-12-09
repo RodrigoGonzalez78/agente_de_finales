@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mesas.db:/app/mesas.db
+    environment:
+      - ADMIN_EMAIL=admin@unne.edu.ar
+      - ADMIN_PASSWORD=admin123
+    restart: unless-stopped

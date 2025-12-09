@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #09090b;
+            --surface: #18181b;
+            --border: #27272a;
+            --primary: #fafafa;
+            --primary-fg: #18181b;
+            --text-main: #e4e4e7;
+            --text-muted: #a1a1aa;
+            --input-bg: #09090b;
+            --danger: #ef4444;
+            --radius: 0.5rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            padding: 30px;
+        }
+
+        h2,
+        h4 {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .input,
+        .select {
+            width: 100%;
+            padding: 0.5rem;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-main);
+            font-family: inherit;
+            margin-top: 4px;
+        }
+
+        .label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: var(--radius);
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-main);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--primary-fg);
+            border: none;
+        }
+
+        .btn-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            margin-top: 16px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .col {
+            flex: 1;
+            min-width: 150px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h2>Panel de Control</h2>
+        <a href="/admin/config" class="btn btn-primary">⚙️ Configuración Global</a>
+    </div>
+
+    <!-- Cargar Nueva Mesa -->
+    <div class="card">
+        <h4>Cargar Nueva Mesa</h4>
+        <form action="/admin/guardar" method="POST" style="margin-top: 16px;">
+            <div class="row">
+                <div class="col">
+                    <div class="label">Materia</div>
+                    <select name="materia" class="select" required>
+                        <option value="" selected disabled>Seleccionar...</option>
+                        {{ range .materias }}<option value="{{ .Nombre }}">{{ .Nombre }}</option>{{ end }}
+                    </select>
+                </div>
+                <div class="col">
+                    <div class="label">Carrera</div>
+                    <select name="carrera" class="select" required>
+                        <option value="" selected disabled>Seleccionar...</option>
+                        {{ range .carreras }}<option value="{{ .Nombre }}">{{ .Nombre }}</option>{{ end }}
+                    </select>
+                </div>
+                <div class="col">
+                    <div class="label">Turno</div>
+                    <select name="turno" class="select">
+                        {{ range .turnos }}<option value="{{ .Nombre }}">{{ .Nombre }}</option>{{ end }}
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="label">Fecha</div>
+                    <input type="date" name="fecha" class="input" required>
+                </div>
+                <div class="col">
+                    <div class="label">Hora</div>
+                    <input type="time" name="hora" class="input" required>
+                </div>
+                <div class="col">
+                    <div class="label">Sede</div>
+                    <select id="sedeSelect" name="sede" class="select" required>
+                        <option value="" selected disabled>Seleccionar...</option>
+                        {{ range .sedes }}<option value="{{ .ID }}">{{ .Nombre }}</option>{{ end }}
+                    </select>
+                </div>
+                <div class="col">
+                    <div class="label">Aula</div>
+                    <select name="aula" id="aulaSelect" class="select" disabled required>
+                        <option value="" selected disabled>Seleccione Sede...</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="btn btn-primary">Guardar Mesa</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Mesas Cargadas -->
+    <div class="card">
+        <h4>Mesas Cargadas</h4>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Materia</th>
+                        <th>Carrera</th>
+                        <th>Turno</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Aula</th>
+                        <th>Ult. Act.</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .mesas }}
+                    <tr>
+                        <td style="color: var(--text-muted);">{{ .ID }}</td>
+                        <td>{{ .Materia }}</td>
+                        <td>{{ .Carrera }}</td>
+                        <td>{{ .Turno }}</td>
+                        <td>{{ .Fecha }}</td>
+                        <td>{{ .Hora }}</td>
+                        <td>{{ .Aula }}</td>
+                        <td style="font-size: 0.8em; color: var(--text-muted);">{{ .FechaEdicion }}</td>
+                        <td><a href="/admin/borrar/{{ .ID }}" class="btn btn-danger"
+                                style="padding: 4px 10px; font-size: 0.75rem;">Eliminar</a></td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('sedeSelect').addEventListener('change', function () {
+            const sedeId = this.value;
+            const aulaSelect = document.getElementById('aulaSelect');
+            aulaSelect.innerHTML = '<option value="" selected disabled>Cargando...</option>';
+            aulaSelect.disabled = true;
+
+            fetch(`/admin/api/aulas?sede_id=${sedeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    aulaSelect.innerHTML = '<option value="" selected disabled>Seleccionar Aula</option>';
+                    if (data && data.length > 0) {
+                        data.forEach(aula => {
+                            const option = document.createElement('option');
+                            option.value = aula.nombre;
+                            option.textContent = aula.nombre;
+                            aulaSelect.appendChild(option);
+                        });
+                        aulaSelect.disabled = false;
+                    } else {
+                        aulaSelect.innerHTML = '<option value="" disabled>No hay aulas</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    aulaSelect.innerHTML = '<option value="" disabled>Error</option>';
+                });
+        });
+    </script>
+</body>
+
+</html>

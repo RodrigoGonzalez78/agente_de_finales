@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Editar {{ .type }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #09090b;
+            --surface: #18181b;
+            --border: #27272a;
+            --primary: #fafafa;
+            --primary-fg: #18181b;
+            --text-main: #e4e4e7;
+            --text-muted: #a1a1aa;
+            --input-bg: #09090b;
+            --radius: 0.5rem;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            padding: 50px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h4 {
+            margin-top: 0;
+            margin-bottom: 24px;
+            color: var(--primary);
+        }
+
+        .label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .input,
+        .select {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-main);
+            margin-bottom: 16px;
+            font-family: inherit;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 24px;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-main);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--primary-fg);
+            border: none;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h4>Editar {{ .type }}</h4>
+        <form action="/admin/config/update/{{ .type }}/{{ .id }}" method="POST">
+
+            <label class="label">Nombre</label>
+            <input type="text" name="nombre" class="input" value="{{ .nombre }}" required>
+
+            {{ if eq .type "aula" }}
+            <label class="label">Sede</label>
+            <select name="sede_id" class="select" required>
+                {{ $currentSedeID := .sede_id }}
+                {{ range .sedes }}
+                <option value="{{ .ID }}" {{ if eq .ID $currentSedeID }}selected{{ end }}>{{ .Nombre }}</option>
+                {{ end }}
+            </select>
+            {{ end }}
+
+            <div class="actions">
+                <a href="/admin/config" class="btn">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+
+</body>
+
+</html>

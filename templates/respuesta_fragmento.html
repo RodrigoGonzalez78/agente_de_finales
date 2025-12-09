@@ -1,0 +1,55 @@
+<div class="message-container user">
+    <div class="message-content" style="justify-content: flex-end;">
+        <div class="text-content"
+            style="background-color: #2F3031; padding: 10px 16px; border-radius: 20px 2px 20px 20px; max-width: 70%;">
+            {{ .mensaje_usuario }}
+        </div>
+    </div>
+</div>
+
+<div class="message-container bot">
+    <div class="message-content">
+        <div class="avatar bot">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L14.7 9.3L22 12L14.7 14.7L12 22L9.3 14.7L2 12L9.3 9.3L12 2Z" fill="white" />
+            </svg>
+        </div>
+        <div class="text-content">
+            {{ if .encontrado }}
+            <p>Encontré estos horarios para <strong>{{ .mensaje_usuario }}</strong>:</p>
+            {{ range .resultados }}
+            <div class="result-card" id="card-{{ .ID }}">
+                <div style="font-size: 1.1em; font-weight: 500; color: #E3E3E3; margin-bottom: 4px;">{{ .Materia }}
+                </div>
+                <div style="color: #A8C7FA; font-size: 0.9em; margin-bottom: 2px;">{{ .Carrera }}</div>
+                <div style="color: #C4C7C5; font-size: 0.9em;">
+                    📅 {{ .Fecha }} &nbsp; | &nbsp; ⏰ {{ .Hora }}
+                </div>
+                <div style="color: #C4C7C5; font-size: 0.9em;">
+                    📍 {{ .Aula }} ({{ .Sede }})
+                </div>
+                <!-- Sede info needed if not in Aula string. Assuming Sede field populated. -->
+                <div style="color: #999; font-size: 0.8em; margin-top: 4px;">
+                    {{ .Turno }} &nbsp;|&nbsp; 🔄 Act: {{ .FechaEdicion }}
+                </div>
+                <button onclick="downloadCard('card-{{ .ID }}')"
+                    style="margin-top: 10px; background: transparent; border: 1px solid #555; color: #ddd; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">
+                    📸 Descargar Imagen
+                </button>
+            </div>
+            {{ end }}
+            {{ else }}
+            <p>Mmm, no encontré nada con ese nombre para esa mesa. ¿Querés intentar de nuevo?</p>
+            {{ end }}
+            <p style="margin-top: 10px; font-size: 0.9em; color: #888;">Si querés buscar otra, escribí el número de
+                mesa.</p>
+        </div>
+    </div>
+</div>
+
+{{ if .reset_state }}
+<div id="form-state" hx-swap-oob="true">
+    <input type="hidden" name="step" value="">
+    <input type="hidden" name="mesa_filter" value="">
+</div>
+{{ end }}
