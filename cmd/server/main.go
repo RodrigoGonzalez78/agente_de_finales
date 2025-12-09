@@ -33,7 +33,6 @@ func main() {
 
 	// Rutas Públicas
 	r.GET("/", chatHandler.ShowChat)
-	r.POST("/chat", chatHandler.HandleMessage) // Keep HTTP fallback if needed, or remove
 	r.GET("/ws", chatHandler.HandleWebSocket)
 
 	// Rutas de Autenticación
