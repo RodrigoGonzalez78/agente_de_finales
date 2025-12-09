@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,8 +21,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	email := c.PostForm("email")
 	password := c.PostForm("password")
 
-	envEmail := "admin@unne.edu.ar" //os.Getenv("ADMIN_EMAIL")
-	envPass := "admin123"           //os.Getenv("ADMIN_PASSWORD")
+	envEmail := os.Getenv("ADMIN_EMAIL")
+	envPass := os.Getenv("ADMIN_PASSWORD")
 
 	if email == envEmail && password == envPass {
 		// Set cookie

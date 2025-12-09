@@ -353,11 +353,16 @@ func (s *ChatSession) performSearch(ctx context.Context, materia string) {
 		}
 		cardID = s.renderFullSchedule(mesas, materia)
 	} else {
-		// Búsqueda por turno
 		mesa, err := s.Handler.Repo.GetByTurn(materia, s.CurrentTurn)
 		if err != nil {
 			s.sendMessage(botMsg("❌ No encontré esta materia en el turno seleccionado."))
-			s.FSM.Event(ctx, "reset") // Vuelve al menú si falla
+			s.FSM.Event(ctx, "reset")
+			return
+		}
+
+		if mesa.Turno != s.CurrentTurn {
+			s.sendMessage(botMsg("⚠️ La materia existe, pero no tiene mesa para ese turno."))
+			s.FSM.Event(ctx, "reset")
 			return
 		}
 		cardID = s.renderSingleTurn(mesa)
