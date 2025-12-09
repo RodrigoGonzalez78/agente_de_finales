@@ -20,7 +20,7 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all for dev
+		return true // NOTA: En producción, validar el dominio aquí por seguridad
 	},
 }
 
@@ -65,27 +65,29 @@ func NewChatSession(conn *websocket.Conn, handler *ChatHandler) *ChatSession {
 	session.FSM = fsm.NewFSM(
 		"idle", // Estado inicial
 		fsm.Events{
-			// Flujo principal
+			// --- Flujo principal ---
 			{Name: "start", Src: []string{"idle"}, Dst: "menu"},
 			{Name: "select_all_dates", Src: []string{"menu"}, Dst: "awaiting_materia_all"},
 			{Name: "select_by_turn", Src: []string{"menu"}, Dst: "awaiting_turn"},
 			{Name: "show_future_turns", Src: []string{"menu"}, Dst: "showing_turns"},
 			{Name: "direct_search", Src: []string{"menu"}, Dst: "awaiting_materia_all"},
 
-			// Submenu de turno
+			// --- Submenu de turno ---
 			{Name: "provide_turn", Src: []string{"awaiting_turn"}, Dst: "awaiting_materia_turn"},
 
-			// Búsqueda de materia
+			// --- Búsqueda de materia ---
 			{Name: "provide_materia", Src: []string{"awaiting_materia_all", "awaiting_materia_turn"}, Dst: "showing_results"},
 			{Name: "disambiguate", Src: []string{"awaiting_materia_all", "awaiting_materia_turn"}, Dst: "disambiguating"},
 			{Name: "select_option", Src: []string{"disambiguating"}, Dst: "showing_results"},
 
-			// Descarga
+			// Al mostrar resultados, pasamos inmediatamente a esperar la respuesta de descarga
 			{Name: "ask_download", Src: []string{"showing_results", "showing_turns"}, Dst: "awaiting_download"},
+
+			// Si dice SI o NO, en ambos casos volvemos al MENU al terminar
 			{Name: "download_yes", Src: []string{"awaiting_download"}, Dst: "menu"},
 			{Name: "download_no", Src: []string{"awaiting_download"}, Dst: "menu"},
 
-			// Reset en cualquier momento
+			// --- Reset y Ayuda ---
 			{Name: "reset", Src: []string{"awaiting_materia_all", "awaiting_materia_turn", "awaiting_turn", "showing_results", "awaiting_download", "disambiguating", "showing_turns"}, Dst: "menu"},
 			{Name: "help", Src: []string{"menu", "awaiting_materia_all", "awaiting_turn", "awaiting_materia_turn", "disambiguating"}, Dst: "menu"},
 		},
@@ -100,7 +102,7 @@ func NewChatSession(conn *websocket.Conn, handler *ChatHandler) *ChatSession {
 			"enter_awaiting_download":     session.onEnterAwaitingDownload,
 			"enter_disambiguating":        session.onEnterDisambiguating,
 
-			// Callbacks de eventos
+			// Callbacks de transición
 			"after_download_yes": session.onDownloadYes,
 			"after_download_no":  session.onDownloadNo,
 			"after_help":         session.onHelp,
@@ -110,7 +112,7 @@ func NewChatSession(conn *websocket.Conn, handler *ChatHandler) *ChatSession {
 	return session
 }
 
-// ProcessMessage procesa el mensaje del usuario según el estado actual
+// ProcessMessage procesa el mensaje del usuario
 func (s *ChatSession) ProcessMessage(input string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -127,8 +129,8 @@ func (s *ChatSession) ProcessMessage(input string) {
 
 	ctx := context.Background()
 
-	// Comandos globales
-	if input == "menu" || input == "menú" || input == "volver" {
+	// Comandos globales de navegación
+	if input == "menu" || input == "menú" || input == "volver" || input == "inicio" {
 		s.FSM.Event(ctx, "reset")
 		return
 	}
@@ -138,7 +140,7 @@ func (s *ChatSession) ProcessMessage(input string) {
 		return
 	}
 
-	// Procesamiento según estado actual
+	// Lógica específica por estado
 	switch currentState {
 	case "idle":
 		s.FSM.Event(ctx, "start")
@@ -153,7 +155,6 @@ func (s *ChatSession) ProcessMessage(input string) {
 		s.handleMateriaInput(ctx, input)
 
 	case "disambiguating":
-		// El usuario seleccionó una opción específica
 		s.handleMateriaInput(ctx, input)
 
 	case "awaiting_download":
@@ -161,7 +162,7 @@ func (s *ChatSession) ProcessMessage(input string) {
 	}
 }
 
-// ============= Handlers de Input =============
+// ============= Handlers de Input (Lógica de decisión) =============
 
 func (s *ChatSession) handleMenuInput(ctx context.Context, input string) {
 	switch {
@@ -172,7 +173,7 @@ func (s *ChatSession) handleMenuInput(ctx context.Context, input string) {
 	case input == "3" || input == "c" || input == "disponible" || input == "turnos":
 		s.FSM.Event(ctx, "show_future_turns")
 	default:
-		// Búsqueda directa
+		// Asumimos búsqueda directa si no es una opción numérica
 		s.CurrentOption = "all"
 		s.FSM.Event(ctx, "direct_search")
 	}
@@ -181,7 +182,7 @@ func (s *ChatSession) handleMenuInput(ctx context.Context, input string) {
 func (s *ChatSession) handleTurnInput(ctx context.Context, input string) {
 	turnNum, err := strconv.Atoi(input)
 	if err != nil || turnNum < 1 || turnNum > 10 {
-		s.sendMessage(botMsg("⚠️ Por favor ingresá un número entre 1 y 10."))
+		s.sendMessage(botMsg("⚠️ Por favor ingresá un número de turno válido (1 al 10)."))
 		return
 	}
 	s.CurrentTurn = strconv.Itoa(turnNum) + "° Turno"
@@ -189,13 +190,15 @@ func (s *ChatSession) handleTurnInput(ctx context.Context, input string) {
 }
 
 func (s *ChatSession) handleMateriaInput(ctx context.Context, input string) {
-	s.sendMessage(botMsg("🔍 Buscando <strong>" + input + "</strong>..."))
+	// Solo avisamos que buscamos si no venimos de desambiguar (clic en botón)
+	if s.FSM.Current() != "disambiguating" {
+		s.sendMessage(botMsg("🔍 Buscando <strong>" + input + "</strong>..."))
+	}
 
-	// Buscar coincidencias
 	matches, err := s.Handler.Repo.GetUniqueMaterias(input)
 	if err != nil {
 		log.Println("Error:", err)
-		s.sendMessage(botMsg("❌ Error al buscar. Intentá nuevamente."))
+		s.sendMessage(botMsg("❌ Ocurrió un error al buscar. Por favor intentá de nuevo."))
 		s.FSM.Event(ctx, "reset")
 		return
 	}
@@ -206,7 +209,7 @@ func (s *ChatSession) handleMateriaInput(ctx context.Context, input string) {
 		return
 	}
 
-	// Múltiples coincidencias
+	// Manejo de múltiples coincidencias
 	if len(matches) > 1 {
 		exactMatch := false
 		for _, m := range matches {
@@ -226,19 +229,21 @@ func (s *ChatSession) handleMateriaInput(ctx context.Context, input string) {
 		input = matches[0]
 	}
 
-	// Realizar búsqueda según el modo
+	// Ejecutar la búsqueda final
 	s.performSearch(ctx, input)
 }
 
 func (s *ChatSession) handleDownloadInput(ctx context.Context, input string) {
-	if input == "si" || input == "sí" || input == "s" {
+	// Lógica simple de texto: si/no
+	if input == "si" || input == "sí" || input == "s" || input == "yes" {
 		s.FSM.Event(ctx, "download_yes")
 	} else {
+		// Cualquier otra cosa se toma como un no (o explícitamente "no")
 		s.FSM.Event(ctx, "download_no")
 	}
 }
 
-// ============= Callbacks de Estados =============
+// ============= Callbacks (Respuestas visuales al entrar a estados) =============
 
 func (s *ChatSession) onEnterMenu(_ context.Context, e *fsm.Event) {
 	s.sendMenuOptions()
@@ -247,7 +252,7 @@ func (s *ChatSession) onEnterMenu(_ context.Context, e *fsm.Event) {
 func (s *ChatSession) onEnterAwaitingMateriaAll(ctx context.Context, e *fsm.Event) {
 	s.CurrentOption = "all"
 	if e.Event == "direct_search" {
-		// Ya tenemos el input en LastInput, procesarlo
+		// Si vino por búsqueda directa, procesamos el input inmediatamente
 		s.handleMateriaInput(ctx, s.LastInput)
 	} else {
 		s.sendMessage(botMsg("Perfecto. ¿Qué materia estás buscando?"))
@@ -262,51 +267,79 @@ func (s *ChatSession) onEnterAwaitingMateriaTurn(_ context.Context, e *fsm.Event
 	s.sendMessage(botMsg("Perfecto, <strong>Turno " + strings.TrimSuffix(s.CurrentTurn, "° Turno") + "</strong>. ¿Qué materia buscás?"))
 }
 
+// CORRECCIÓN PRINCIPAL AQUÍ:
 func (s *ChatSession) onEnterShowingResults(ctx context.Context, e *fsm.Event) {
-	// Los resultados ya se mostraron en performSearch
-	// Preguntar por descarga
-	s.FSM.Event(ctx, "ask_download")
+	// El resultado ya se renderizó en performSearch.
+	// Usamos una goroutine para esperar un poco y luego avanzar automáticamente.
+	go func() {
+		time.Sleep(600 * time.Millisecond) // Pausa para que el usuario lea la tabla
+
+		// Usamos context.Background() porque la goroutine se ejecuta desacoplada
+		if err := s.FSM.Event(context.Background(), "ask_download"); err != nil {
+			log.Printf("Error avanzando a descarga: %v", err)
+		}
+	}()
 }
 
 func (s *ChatSession) onEnterShowingTurns(ctx context.Context, e *fsm.Event) {
 	s.sendFutureTurnos()
-	s.FSM.Event(ctx, "ask_download")
+	// Si hay turnos, preguntamos si quiere descargar, con el mismo delay
+	if s.PendingCardID != "" {
+		go func() {
+			time.Sleep(600 * time.Millisecond)
+			if err := s.FSM.Event(context.Background(), "ask_download"); err != nil {
+				log.Printf("Error avanzando a descarga (turnos): %v", err)
+			}
+		}()
+	} else {
+		// Si no hay turnos (error o vacio), volvemos al menú
+		s.FSM.Event(ctx, "reset")
+	}
 }
 
 func (s *ChatSession) onEnterAwaitingDownload(_ context.Context, e *fsm.Event) {
+	// Pregunta simple de texto
 	s.sendMessage(botMsg("¿Querés guardar esta información como imagen? Escribí <strong>sí</strong> o <strong>no</strong>"))
 }
 
 func (s *ChatSession) onEnterDisambiguating(_ context.Context, e *fsm.Event) {
-	// La disambiguación ya se mostró
+	// Ya se mostraron los botones en showDisambiguation justo antes de llamar al evento.
+	// El estado se queda quieto esperando que el usuario clickee o escriba.
 }
 
+// --- Acciones post-respuesta de descarga ---
+
 func (s *ChatSession) onDownloadYes(_ context.Context, e *fsm.Event) {
+	// 1. Enviamos script de descarga
 	downloadHTML := `<div style="display:none;"><button id="auto-download-btn" onclick="downloadCard('` + s.PendingCardID + `'); this.remove();">Download</button></div>`
 	downloadHTML += `<script>setTimeout(() => { const btn = document.getElementById('auto-download-btn'); if(btn) btn.click(); }, 100);</script>`
-	downloadHTML += botMsg("¡Perfecto! Preparando descarga... 📥")
+	downloadHTML += botMsg("¡Listo! Descargando imagen... 📥")
 	s.sendMessage(downloadHTML)
+
+	// Limpiamos ID
 	s.PendingCardID = ""
+
+	// NOTA: Al terminar esta función, la FSM pasa al estado "menu" (definido en Dst),
+	// lo que disparará onEnterMenu y mostrará las opciones de nuevo.
 }
 
 func (s *ChatSession) onDownloadNo(_ context.Context, e *fsm.Event) {
-	s.sendMessage(botMsg("Entendido 👍"))
 	s.PendingCardID = ""
+	// Al terminar, la FSM pasa al estado "menu" automáticamente.
 }
 
 func (s *ChatSession) onHelp(_ context.Context, e *fsm.Event) {
 	html := `<div class="message-container bot"><div class="avatar">🤖</div><div class="message-content">`
-	html += `<p><strong>💡 Comandos útiles:</strong></p>`
+	html += `<p><strong>💡 Ayuda rápida:</strong></p>`
 	html += `<p style="margin-top: 12px; color: var(--text-secondary); line-height: 1.8;">`
-	html += `• Escribí el nombre de una materia para búsqueda rápida<br>`
-	html += `• <strong>1</strong>, <strong>2</strong> o <strong>3</strong> para opciones del menú<br>`
-	html += `• <strong>menú</strong> para ver las opciones<br>`
-	html += `• <strong>ayuda</strong> para este mensaje`
+	html += `• Escribí el nombre de una materia para buscarla.<br>`
+	html += `• <strong>1</strong>, <strong>2</strong> o <strong>3</strong> para usar las opciones del menú.<br>`
+	html += `• <strong>menu</strong> para volver al inicio.<br>`
 	html += `</p></div></div>`
 	s.sendMessage(html)
 }
 
-// ============= Helpers =============
+// ============= Helpers de Renderizado y Búsqueda =============
 
 func (s *ChatSession) performSearch(ctx context.Context, materia string) {
 	var cardID string
@@ -315,7 +348,7 @@ func (s *ChatSession) performSearch(ctx context.Context, materia string) {
 		mesas, err := s.Handler.Repo.GetFullSchedule(materia)
 		if err != nil || len(mesas) == 0 {
 			s.sendMessage(botMsg("❌ No encontré información sobre esta materia."))
-			s.FSM.Event(ctx, "reset")
+			s.FSM.Event(ctx, "reset") // Vuelve al menú si falla
 			return
 		}
 		cardID = s.renderFullSchedule(mesas, materia)
@@ -324,14 +357,32 @@ func (s *ChatSession) performSearch(ctx context.Context, materia string) {
 		mesa, err := s.Handler.Repo.GetByTurn(materia, s.CurrentTurn)
 		if err != nil {
 			s.sendMessage(botMsg("❌ No encontré esta materia en el turno seleccionado."))
-			s.FSM.Event(ctx, "reset")
+			s.FSM.Event(ctx, "reset") // Vuelve al menú si falla
 			return
 		}
 		cardID = s.renderSingleTurn(mesa)
 	}
 
+	// Guardamos el ID para la posible descarga
 	s.PendingCardID = cardID
-	s.FSM.Event(ctx, "provide_materia")
+
+	// Disparamos el evento correcto según el estado actual:
+	// - Si venimos desde la desambiguación, usamos "select_option" (está permitido desde "disambiguating")
+	// - Si venimos de la entrada normal, usamos "provide_materia"
+	var evt string
+	if s.FSM.Current() == "disambiguating" {
+		evt = "select_option"
+	} else {
+		evt = "provide_materia"
+	}
+
+	if err := s.FSM.Event(ctx, evt); err != nil {
+		log.Printf("Error al disparar evento FSM (%s): %v — estado actual: %s", evt, err, s.FSM.Current())
+		// Como fallback, intentar resetear al menú para no dejar la sesión bloqueada
+		if resetErr := s.FSM.Event(context.Background(), "reset"); resetErr != nil {
+			log.Printf("Error al forzar reset FSM: %v", resetErr)
+		}
+	}
 }
 
 func (s *ChatSession) renderFullSchedule(mesas []models.Mesa, materia string) string {
@@ -380,7 +431,8 @@ func (s *ChatSession) renderSingleTurn(mesa models.Mesa) string {
 func (s *ChatSession) sendFutureTurnos() {
 	turnos, err := s.Handler.ParamsRepo.GetFutureTurnos()
 	if err != nil || len(turnos) == 0 {
-		s.sendMessage(botMsg("📅 No hay turnos disponibles."))
+		s.sendMessage(botMsg("📅 No hay turnos disponibles por el momento."))
+		s.PendingCardID = "" // Aseguramos que no haya ID pendiente
 		return
 	}
 
@@ -413,6 +465,7 @@ func (s *ChatSession) showDisambiguation(options []string) {
 	html := `<div class="message-container bot"><div class="avatar">🤖</div><div class="message-content">`
 	html += `<p>Encontré varias opciones. ¿Cuál buscás?</p><div style="margin-top:12px;">`
 	for _, opt := range options {
+		// Aquí sí usamos botones porque es selección de materia, no flujo de descarga
 		html += `<button class="option-button" onclick="sendMessage('` + opt + `')">` + opt + `</button>`
 	}
 	html += `</div></div></div>`
@@ -420,12 +473,9 @@ func (s *ChatSession) showDisambiguation(options []string) {
 }
 
 func (s *ChatSession) sendMenuOptions() {
-	// 1. Abrimos el contenedor principal del mensaje del bot y el avatar
 	html := `<div class="message-container bot"><div class="avatar">🤖</div>`
-
-	// 2. Insertamos el HTML exacto que diseñaste
 	html += `<div class="message-content">`
-	html += `<p><strong>¿Qué necesitás saber? </strong> </p>`
+	html += `<p><strong>¿Qué necesitás saber?</strong></p>`
 	html += `<p style="margin-top: 16px; color: var(--text-secondary); line-height: 1.8;">`
 	html += `<strong style="color: var(--text-primary);">1</strong> - Buscar todas las fechas de una materia<br>`
 	html += `<strong style="color: var(--text-primary);">2</strong> - Buscar fecha en un turno específico<br>`
@@ -433,14 +483,11 @@ func (s *ChatSession) sendMenuOptions() {
 	html += `</p>`
 	html += `<p style="margin-top: 12px; color: var(--text-tertiary); font-size: 13px;">`
 	html += `Escribí el número o el nombre de una materia para comenzar.`
-	html += `</p>`
-	html += `</div>` // Cerramos message-content
-
-	// 3. Cerramos el contenedor principal
-	html += `</div>`
+	html += `</p></div></div>`
 
 	s.sendMessage(html)
 }
+
 func (s *ChatSession) sendMessage(html string) {
 	s.Conn.WriteMessage(websocket.TextMessage, []byte(html))
 }
@@ -455,14 +502,14 @@ func (h *ChatHandler) HandleWebSocket(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	// Crear sesión para este usuario
+	// Crear la sesión
 	session := NewChatSession(conn, h)
-
-	// Iniciar la conversación
 	ctx := context.Background()
+
+	// Disparamos el evento de inicio para mostrar el menú
 	session.FSM.Event(ctx, "start")
 
-	// Loop principal
+	// Loop de lectura
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
@@ -473,7 +520,7 @@ func (h *ChatHandler) HandleWebSocket(c *gin.Context) {
 	}
 }
 
-// ============= Helpers globales =============
+// ============= Helpers Globales =============
 
 func botMsg(text string) string {
 	return `<div class="message-container bot"><div class="avatar">🤖</div><div class="message-content"><p>` + text + `</p></div></div>`
