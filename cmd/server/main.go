@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Inicializar Base de Datos
-	db, err := database.InitDB("./mesas.db")
+	db, err := database.InitDB("./data/mesas.db")
 	if err != nil {
 		log.Fatal(err)
 	}

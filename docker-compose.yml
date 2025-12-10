@@ -6,7 +6,7 @@ services:
     ports:
       - "4000:8080"
     volumes:
-      - ./mesas.db:/app/mesas.db
+      - ./data:/app/data
     environment:
       - ADMIN_EMAIL=admin@unne.edu.ar
       - ADMIN_PASSWORD=admin123
