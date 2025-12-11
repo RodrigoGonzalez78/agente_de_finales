@@ -246,6 +246,7 @@ func (s *ChatSession) handleDownloadInput(ctx context.Context, input string) {
 // ============= Callbacks (Respuestas visuales al entrar a estados) =============
 
 func (s *ChatSession) onEnterMenu(_ context.Context, e *fsm.Event) {
+	s.CurrentOption = ""
 	s.sendMenuOptions()
 }
 
